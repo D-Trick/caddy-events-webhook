@@ -13,17 +13,12 @@ import (
 )
 
 type EventWebhook struct {
-	EventName string `json:"event_name,omitempty"`
+	Logger *zap.Logger
+
 	URL string `json:"url,omitempty"`
 	Method string `json:"method,omitempty"`
-	
-	// Headers는 요청에 포함할 커스텀 헤더들입니다
 	Headers map[string]string `json:"headers,omitempty"`
-	
-	// Timeout은 요청 타임아웃입니다 (기본값: 10초)
 	Timeout caddy.Duration `json:"timeout,omitempty"`
-	
-	Logger *zap.Logger
 }
 
 func init() {
@@ -40,7 +35,6 @@ func (EventWebhook) CaddyModule() caddy.ModuleInfo {
 func (w *EventWebhook) Provision(ctx caddy.Context) error {
 	w.Logger = ctx.Logger(w)
 	
-	// 기본값 설정
 	if w.Method == "" {
 		w.Method = "POST"
 	}
@@ -56,17 +50,10 @@ func (w *EventWebhook) Provision(ctx caddy.Context) error {
 
 // Caddy Event Handle
 func (w *EventWebhook) Handle(ctx caddy.Context, e caddy.Event) error {
-	var eventName = e.Name()
-
-	if w.EventName != "" && eventName != w.EventName {
-		return nil
-	}
-	
 	w.Logger.Debug("handling event",
-		zap.String("event_name", eventName),
+		zap.String("event_name", e.Name()),
 		zap.String("webhook_url", w.URL))
 	
-	// 웹훅 요청 전송 (비동기)
 	go w.sendWebhook(e)
 	
 	return nil
