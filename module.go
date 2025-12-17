@@ -139,48 +139,41 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 
 // UnmarshalCaddyfile은 Caddyfile 설정을 파싱합니다
 func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	for d.Next() {
-		// 1. arg: eventName
-		if d.NextArg() {
-			w.EventName = d.Val()
-		}
-		// 2. arg: URL
-		if d.NextArg() {
-			w.URL = d.Val()
-		} else {
-			return d.Errf("webhook URL is not configured")
-		}
-		
-		// 블록 내의 설정 파싱
-		for d.NextBlock(0) {
-			switch d.Val() {
-			case "header":
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-				key := d.Val()
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-				value := d.Val()
-				w.Headers[key] = value
-				
-			case "timeout":
-				if !d.NextArg() {
-					return d.ArgErr()
-				}
-				dur, err := time.ParseDuration(d.Val())
-				if err != nil {
-					return d.Errf("invalid timeout duration: %v", err)
-				}
-				w.Timeout = caddy.Duration(dur)
-			default:
-				return d.Errf("unrecognized subdirective: %s", d.Val())
+	// Arg: URL
+	if d.NextArg() {
+		w.URL = d.Val()
+	} else {
+		return d.Errf("webhook URL is not configured")
+	}
+	
+	// Parse configuration inside the block
+	for d.NextBlock(0) {
+		switch d.Val() {
+		case "header":
+			if !d.NextArg() {
+				return d.ArgErr()
 			}
+			key := d.Val()
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+			value := d.Val()
+			w.Headers[key] = value
+			
+		case "timeout":
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+			dur, err := time.ParseDuration(d.Val())
+			if err != nil {
+				return d.Errf("invalid timeout duration: %v", err)
+			}
+			w.Timeout = caddy.Duration(dur)
+		default:
+			return d.Errf("unrecognized subdirective: %s", d.Val())
 		}
 	}
 	
-	// URL 유효성 검사
 	if w.URL == "" {
 		return d.Errf("webhook URL is required")
 	}
