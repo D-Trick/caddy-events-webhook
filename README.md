@@ -2,6 +2,10 @@
 
 When an event occurs in Caddy, a webhook request is sent to the specified URL.
 
+## Test Version
+
+v2.10.2
+
 ## Configuration Options
 
 - `header`: HTTP headers (optional)
