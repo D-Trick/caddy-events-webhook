@@ -80,7 +80,7 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 	
 	requestBody, err = json.Marshal(payload)
 	if err != nil {
-		w.Logger.Error("failed to marshal webhook payload", 
+		w.Logger.Error("JSON serialization failed for webhook payload", 
 			zap.String("event", eventName),
 			zap.Error(err))
 		return
