@@ -2,6 +2,7 @@ package eventwebhook
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/caddyserver/caddy/v2/modules/caddyevents"
 	"go.uber.org/zap"
 )
 
@@ -49,11 +51,11 @@ func (w *EventWebhook) Provision(ctx caddy.Context) error {
 }
 
 // Caddy Event Handle
-func (w *EventWebhook) Handle(ctx caddy.Context, e caddy.Event) error {
+func (w *EventWebhook) Handle(ctx context.Context, e caddy.Event) error {
 	w.Logger.Debug("handling event",
 		zap.String("event_name", e.Name()),
 		zap.String("webhook_url", w.URL))
-	
+
 	go w.sendWebhook(e)
 	
 	return nil
@@ -124,7 +126,6 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 	}
 }
 
-// UnmarshalCaddyfile은 Caddyfile 설정을 파싱합니다
 func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	// Arg: URL
 	if d.NextArg() {
@@ -168,9 +169,9 @@ func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return nil
 }
 
-// Interface guards
 var (
-	_ caddy.Provisioner     = (*EventWebhook)(nil)
-	_ caddyfile.Unmarshaler = (*EventWebhook)(nil)
 	_ caddy.Module          = (*EventWebhook)(nil)
+	_ caddy.Provisioner     = (*EventWebhook)(nil)
+	_ caddyevents.Handler   = (*EventWebhook)(nil)
+	_ caddyfile.Unmarshaler = (*EventWebhook)(nil)
 )
