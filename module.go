@@ -115,18 +115,19 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		w.Logger.Debug("webhook sent successfully",
 			zap.String("event", eventName),
-			zap.String("url", w.URL),
-			zap.Int("status", resp.StatusCode))
+			zap.Int("status", resp.StatusCode),
+			zap.String("url", w.URL))
 	} else {
 		w.Logger.Warn("webhook returned non-2xx status",
 			zap.String("event", eventName),
-			zap.String("url", w.URL),
 			zap.Int("status", resp.StatusCode),
+			zap.String("url", w.URL),
 			zap.String("response", string(body)))
 	}
 }
 
 func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+	d.NextArg()
 	// Arg: URL
 	if d.NextArg() {
 		w.URL = d.Val()
