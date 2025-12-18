@@ -36,7 +36,7 @@ func (EventWebhook) CaddyModule() caddy.ModuleInfo {
 
 func (w *EventWebhook) Provision(ctx caddy.Context) error {
 	w.Logger = ctx.Logger(w)
-	
+
 	if w.Method == "" {
 		w.Method = "POST"
 	}
@@ -46,6 +46,8 @@ func (w *EventWebhook) Provision(ctx caddy.Context) error {
 	if w.Headers == nil {
 		w.Headers = make(map[string]string)
 	}
+
+	w.Logger.Info("module loaded");
 	
 	return nil
 }
@@ -96,10 +98,11 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 		return
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "Caddy Event Webhook")
 	for key, value := range w.Headers {
 		req.Header.Set(key, value)
 	}
+	req.Header.Set("Content-Type", "application/json")
 	
 	resp, err := client.Do(req)
 	if err != nil {
