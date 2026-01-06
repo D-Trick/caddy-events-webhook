@@ -1,4 +1,4 @@
-package eventwebhook
+package caddy_events_webhook
 
 import (
 	"bytes"
@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type EventWebhook struct {
+type EventsWebhook struct {
 	Logger *zap.Logger
 
 	URL string `json:"url,omitempty"`
@@ -24,47 +24,47 @@ type EventWebhook struct {
 }
 
 func init() {
-	caddy.RegisterModule(EventWebhook{})
+	caddy.RegisterModule(EventsWebhook{})
 }
 
-func (EventWebhook) CaddyModule() caddy.ModuleInfo {
+func (EventsWebhook) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
 		ID:  "events.handlers.webhook",
-		New: func() caddy.Module { return new(EventWebhook) },
+		New: func() caddy.Module { return new(EventsWebhook) },
 	}
 }
 
-func (w *EventWebhook) Provision(ctx caddy.Context) error {
-	w.Logger = ctx.Logger(w)
+func (ew *EventsWebhook) Provision(ctx caddy.Context) error {
+	ew.Logger = ctx.Logger(ew)
 
-	if w.Method == "" {
-		w.Method = "POST"
+	if ew.Method == "" {
+		ew.Method = "POST"
 	}
-	if w.Timeout == 0 {
-		w.Timeout = caddy.Duration(30 * time.Second)
+	if ew.Timeout == 0 {
+		ew.Timeout = caddy.Duration(30 * time.Second)
 	}
-	if w.Headers == nil {
-		w.Headers = make(map[string]string)
+	if ew.Headers == nil {
+		ew.Headers = make(map[string]string)
 	}
 
-	w.Logger.Info("module loaded");
+	ew.Logger.Info("module loaded");
 	
 	return nil
 }
 
 // Caddy Event Handle
-func (w *EventWebhook) Handle(ctx context.Context, e caddy.Event) error {
-	w.Logger.Debug("handling event",
+func (ew *EventsWebhook) Handle(ctx context.Context, e caddy.Event) error {
+	ew.Logger.Debug("handling event",
 		zap.String("event_name", e.Name()),
-		zap.String("webhook_url", w.URL))
+		zap.String("webhook_url", ew.URL))
 
-	go w.sendWebhook(e)
+	go ew.sendWebhook(e)
 	
 	return nil
 }
 
 // HTTP Request
-func (w *EventWebhook) sendWebhook(e caddy.Event) {
+func (ew *EventsWebhook) sendWebhook(e caddy.Event) {
 	var eventName = e.Name()
 	var requestBody []byte
 	var err error
@@ -80,35 +80,35 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 	
 	requestBody, err = json.Marshal(payload)
 	if err != nil {
-		w.Logger.Error("JSON serialization failed for webhook payload", 
+		ew.Logger.Error("JSON serialization failed for webhook payload", 
 			zap.String("event", eventName),
 			zap.Error(err))
 		return
 	}
 	
 	client := &http.Client{
-		Timeout: time.Duration(w.Timeout),
+		Timeout: time.Duration(ew.Timeout),
 	}
 	
-	req, err := http.NewRequest(w.Method, w.URL, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest(ew.Method, ew.URL, bytes.NewBuffer(requestBody))
 	if err != nil {
-		w.Logger.Error("failed to create webhook request",
+		ew.Logger.Error("failed to create webhook request",
 			zap.String("event", eventName),
 			zap.Error(err))
 		return
 	}
 
 	req.Header.Set("User-Agent", "Caddy Event Webhook")
-	for key, value := range w.Headers {
+	for key, value := range ew.Headers {
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	
 	resp, err := client.Do(req)
 	if err != nil {
-		w.Logger.Error("failed to send webhook",
+		ew.Logger.Error("failed to send webhook",
 			zap.String("event", eventName),
-			zap.String("url", w.URL),
+			zap.String("url", ew.URL),
 			zap.Error(err))
 		return
 	}
@@ -116,24 +116,24 @@ func (w *EventWebhook) sendWebhook(e caddy.Event) {
 	
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		w.Logger.Debug("webhook sent successfully",
+		ew.Logger.Debug("webhook sent successfully",
 			zap.String("event", eventName),
 			zap.Int("status", resp.StatusCode),
-			zap.String("url", w.URL))
+			zap.String("url", ew.URL))
 	} else {
-		w.Logger.Warn("webhook returned non-2xx status",
+		ew.Logger.Warn("webhook returned non-2xx status",
 			zap.String("event", eventName),
 			zap.Int("status", resp.StatusCode),
-			zap.String("url", w.URL),
+			zap.String("url", ew.URL),
 			zap.String("response", string(body)))
 	}
 }
 
-func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
+func (ew *EventsWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	d.NextArg()
 	// Arg: URL
 	if d.NextArg() {
-		w.URL = d.Val()
+		ew.URL = d.Val()
 	} else {
 		return d.Errf("webhook URL is not configured")
 	}
@@ -150,7 +150,7 @@ func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				return d.ArgErr()
 			}
 			value := d.Val()
-			w.Headers[key] = value
+			ew.Headers[key] = value
 			
 		case "timeout":
 			if !d.NextArg() {
@@ -160,13 +160,13 @@ func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			if err != nil {
 				return d.Errf("invalid timeout duration: %v", err)
 			}
-			w.Timeout = caddy.Duration(dur)
+			ew.Timeout = caddy.Duration(dur)
 		default:
 			return d.Errf("unrecognized subdirective: %s", d.Val())
 		}
 	}
 	
-	if w.URL == "" {
+	if ew.URL == "" {
 		return d.Errf("webhook URL is required")
 	}
 	
@@ -174,8 +174,8 @@ func (w *EventWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 }
 
 var (
-	_ caddy.Module          = (*EventWebhook)(nil)
-	_ caddy.Provisioner     = (*EventWebhook)(nil)
-	_ caddyevents.Handler   = (*EventWebhook)(nil)
-	_ caddyfile.Unmarshaler = (*EventWebhook)(nil)
+	_ caddy.Module          = (*EventsWebhook)(nil)
+	_ caddy.Provisioner     = (*EventsWebhook)(nil)
+	_ caddyevents.Handler   = (*EventsWebhook)(nil)
+	_ caddyfile.Unmarshaler = (*EventsWebhook)(nil)
 )
