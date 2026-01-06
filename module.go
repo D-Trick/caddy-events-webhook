@@ -141,28 +141,32 @@ func (ew *EventsWebhook) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	// Parse configuration inside the block
 	for d.NextBlock(0) {
 		switch d.Val() {
-		case "header":
-			if !d.NextArg() {
-				return d.ArgErr()
-			}
-			key := d.Val()
-			if !d.NextArg() {
-				return d.ArgErr()
-			}
-			value := d.Val()
-			ew.Headers[key] = value
-			
-		case "timeout":
-			if !d.NextArg() {
-				return d.ArgErr()
-			}
-			dur, err := time.ParseDuration(d.Val())
-			if err != nil {
-				return d.Errf("invalid timeout duration: %v", err)
-			}
-			ew.Timeout = caddy.Duration(dur)
-		default:
-			return d.Errf("unrecognized subdirective: %s", d.Val())
+			case "header":
+				if ew.Headers == nil {
+					ew.Headers = make(map[string]string)
+				}
+
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+				key := d.Val()
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+				value := d.Val()
+				ew.Headers[key] = value
+				
+			case "timeout":
+				if !d.NextArg() {
+					return d.ArgErr()
+				}
+				dur, err := time.ParseDuration(d.Val())
+				if err != nil {
+					return d.Errf("invalid timeout duration: %v", err)
+				}
+				ew.Timeout = caddy.Duration(dur)
+			default:
+				return d.Errf("unrecognized subdirective: %s", d.Val())
 		}
 	}
 	
